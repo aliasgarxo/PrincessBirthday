@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Happy Birthday ❤️</title>
+
+  <link rel="preconnect" href="https://cdn.jsdelivr.net" />
+  <link rel="stylesheet" href="styles.css" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Emilys+Candy&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Pacifico&display=swap" rel="stylesheet">
+
+  <!-- lightGallery (lightbox) -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/lightgallery@2.7.2/css/lightgallery-bundle.min.css">
+</head>
+<body>
+  <!-- Ambient background particles (balloons/hearts/sparkles) -->
+  <div id="particles" aria-hidden="true"></div>
+
+  <!-- Subtle vignette + noise for “immersive” depth -->
+  <div class="vignette" aria-hidden="true"></div>
+
+  <!-- <header class="topbar">
+    <div class="brand">❤️ Birthday Scroll</div>
+    <nav class="nav">
+      <a href="#hero">Home</a>
+      <a href="#cake">Cake</a>
+      <a href="#fireworks">Fireworks</a>
+      <a href="#letter">Letter</a>
+      <a href="#gallery">Photos</a>
+      <a href="#game">Game</a>
+    </nav>
+  </header> -->
+
+  <main>
+    <!-- HERO -->
+    <section id="hero" class="section hero hero-full">
+  
+      <div class="hero-bg-overlay"></div>
+
+      <div class="hero-main">
+
+        <!-- ORBIT CONTAINER -->
+        <div class="hero-orbit" id="heroOrbit">
+
+          <!-- LARGE HAPPY BIRTHDAY IMAGE -->
+          <img src="assets/2.png" alt="Happy Birthday"
+               class="hb-img-large">
+
+          <!-- HEART IMAGE TILES -->
+          <div class="orbit orbit-1" style="--count: 8;">
+              <div class="heart-tile" style="--i:0; --r: min(38vw, 480px);"><img src="assets/hearts/4.png"></div>
+              <div class="heart-tile" style="--i:1; --r: min(38vw, 480px);"><img src="assets/hearts/5.png"></div>
+              <div class="heart-tile" style="--i:2; --r: min(38vw, 480px);"><img src="assets/hearts/6.png"></div>
+              <div class="heart-tile" style="--i:3; --r: min(38vw, 480px);"><img src="assets/hearts/7.png"></div>
+              <div class="heart-tile" style="--i:4; --r: min(38vw, 480px);"><img src="assets/hearts/8.png"></div>
+              <div class="heart-tile" style="--i:5; --r: min(38vw, 480px);"><img src="assets/hearts/9.png"></div>
+              <div class="heart-tile" style="--i:6; --r: min(38vw, 480px);"><img src="assets/hearts/92.png"></div>
+              <div class="heart-tile" style="--i:7; --r: min(38vw, 480px);"><img src="assets/hearts/91.png"></div>
+          </div>
+
+
+          <div class="orbit orbit-2" style="--count: 10;">
+              <div class="heart-tile" style="--i:0; --r: min(52vw, 580px);"><img src="assets/hearts/4.png"></div>
+              <div class="heart-tile" style="--i:1; --r: min(52vw, 580px);"><img src="assets/hearts/5.png"></div>
+              <div class="heart-tile" style="--i:2; --r: min(52vw, 580px);"><img src="assets/hearts/6.png"></div>
+              <div class="heart-tile" style="--i:3; --r: min(52vw, 580px);"><img src="assets/hearts/7.png"></div>
+              <div class="heart-tile" style="--i:4; --r: min(52vw, 580px);"><img src="assets/hearts/8.png"></div>
+              <div class="heart-tile" style="--i:5; --r: min(52vw, 580px);"><img src="assets/hearts/9.png"></div>
+              <div class="heart-tile" style="--i:6; --r: min(52vw, 580px);"><img src="assets/hearts/94.png"></div>
+              <div class="heart-tile" style="--i:7; --r: min(52vw, 580px);"><img src="assets/hearts/91.png"></div>
+              <div class="heart-tile" style="--i:8; --r: min(52vw, 580px);"><img src="assets/hearts/92.png"></div>
+              <div class="heart-tile" style="--i:9; --r: min(52vw, 580px);"><img src="assets/hearts/93.png"></div>
+          </div>
+
+          </div>
+
+        </div>
+
+        <!-- CTA UNDER IMAGE -->
+        <div class="hero-bottom">
+          <button class="btn primary" id="startBtn">Start the Surprise</button>
+        </div>
+
+      </div>
+
+    </section>
+
+
+
+    <!-- CAKE -->
+    <section id="cake" class="section cake">
+      <div class="container">
+        <div class="section-head">
+          <h2>Make a wish 🎂</h2>
+          <p>Light the candles… then make a wish.</p>
+        </div>
+
+        <div class="cake-grid">
+          <div class="cake-stage tilt" id="cakeStage">
+              <div class="fancy-cake" id="fancyCake" aria-label="Birthday cake">
+            
+                <!-- Glow behind cake -->
+                <div class="cake-glow" aria-hidden="true"></div>
+            
+                <!-- Candles will be injected here by JS -->
+                <div class="candle-row" id="candleRow" aria-hidden="true"></div>
+            
+                <!-- Cake tiers -->
+                <div class="tier tier-3">
+                  <div class="drip"></div>
+                  <div class="sprinkles"></div>
+                </div>
+            
+                <div class="tier tier-2">
+                  <div class="drip"></div>
+                  <div class="sprinkles"></div>
+                </div>
+            
+                <div class="tier tier-1">
+                  <div class="drip"></div>
+                  <div class="sprinkles"></div>
+                </div>
+            
+                <div class="cake-shadow" aria-hidden="true"></div>
+              </div>
+          </div>
+
+
+          <div class="cake-actions">
+            <div class="card">
+              <h3>Candle controls</h3>
+              <p class="muted">Tap buttons below. (We can add mic “blow” later.)</p>
+              <div class="stack">
+                <button class="btn primary" id="lightBtn">Light Candles ✨</button>
+                <button class="btn ghost" id="wishBtn" disabled>Make a Wish 💝</button>
+                <button class="btn danger" id="blowBtn" disabled>Blow Them Out 🌬️</button>
+              </div>
+              <div class="wish-box" id="wishBox" aria-live="polite"></div>
+            </div>
+
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- LOVE LETTER -->
+    <section id="letter" class="section letter">
+      <div class="container">
+        <div class="section-head">
+          <h2>A letter for you 💌</h2>
+          <p>It reveals slowly as you scroll.</p>
+        </div>
+
+        <div class="letter-card tilt" id="letterCard">
+          <div class="letter-top">
+            <div class="tenor-wrapper"><div class="tenor-gif-embed" data-postid="15477833" data-share-method="host" data-aspect-ratio="1.23552" data-width="100%"><a href="https://tenor.com/view/love-heartbeat-heart-in-love-i-love-you-gif-15477833">Love Heartbeat Sticker</a>from <a href="https://tenor.com/search/love-stickers">Love Stickers</a></div> <script type="text/javascript" async src="https://tenor.com/embed.js"></script></div>
+            <div>
+              <h3>To: <span id="toName">My Love</span></h3>
+              <p class="muted">From: The Love of your LIFE</p>
+            </div>
+          </div>
+
+          <div class="letter-body" id="letterBody">
+            <!-- Each line animates in -->
+            <p>Hey you,</p>
+            <p>Happy birthday. I wanted to give you something different— a little website where the surprise unfolds one scroll at a time.You make my life lighter, funnier, and somehow more peaceful. I love the way you laugh, the way you care, the way you show up. I’m proud of you—of your heart, your strength, your dreams. This year, I’m wishing you everything beautiful you deserve… and I’m wishing I get to be beside you through it. One more thing: I’m choosing you—today and always.
+            </p>
+            <p class="line signature">Love, <span id="fromName">Me</span> ❤️</p>
+          </div>
+
+          <div class="letter-footer">
+            <div class="pill">Scroll to reveal ✨</div>
+            <div class="pill">Tap photos next 📸</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- GALLERY -->
+    <section id="gallery" class="section gallery">
+      <div class="container">
+        <div class="section-head">
+          <h2>Our memories 📸</h2>
+          <p>Click any photo to open it in a lightbox.</p>
+        </div>
+
+        <div class="polaroid-grid" id="lightgallery">
+          <!-- Replace data-src & src with your own photos -->
+          <!-- Keep thumbs small for performance -->
+          <a class="polaroid tilt" href="assets/photos/01.jpg">
+            <img src="assets/photos/01.jpg" alt="Memory 1">
+            <span>us ✨</span>
+          </a>
+          <a class="polaroid tilt" href="assets/photos/02.jpg">
+            <img src="assets/photos/02.jpg" alt="Memory 2">
+            <span>that day ❤️</span>
+          </a>
+          <a class="polaroid tilt" href="assets/photos/03.jpg">
+            <img src="assets/photos/03.jpg" alt="Memory 3">
+            <span>smiles</span>
+          </a>
+          <a class="polaroid tilt" href="assets/photos/04.jpg">
+            <img src="assets/photos/04.jpg" alt="Memory 4">
+            <span>forever</span>
+          </a>
+          <a class="polaroid tilt" href="assets/photos/05.jpg">
+            <img src="assets/photos/05.jpg" alt="Memory 5">
+            <span>my favorite</span>
+          </a>
+          <a class="polaroid tilt" href="assets/photos/06.jpg">
+            <img src="assets/photos/06.jpg" alt="Memory 6">
+            <span>always you</span>
+          </a>
+        </div>
+
+        <div class="note">
+          Want 30–80 photos? Just duplicate the <code>&lt;a class="polaroid"&gt;</code> blocks.
+        </div>
+      </div>
+    </section>
+
+    <!-- GAME -->
+    <section id="game" class="section game">
+      <div class="container">
+        <div class="section-head">
+          <h2>Mini-game: Memory Match 🧠💞</h2>
+          <p>Match the pairs to unlock a final surprise message.</p>
+        </div>
+
+        <div class="game-wrap">
+          <div class="card">
+            <div class="row space">
+              <div>
+                <h3>Match count</h3>
+                <p class="muted">Pairs found: <span id="pairsFound">0</span> / <span id="pairsTotal">6</span></p>
+              </div>
+              <button class="btn ghost" id="resetGameBtn">Reset</button>
+            </div>
+            <div class="grid game-grid" id="gameGrid" aria-label="Memory match game"></div>
+          </div>
+
+          <div class="card final card-glow" id="finalCard" hidden>
+            <h3>Unlocked 🎁</h3>
+            <p class="muted" id="finalMessage">
+              You did it. Now scroll a tiny bit more… I have one last line for you.
+            </p>
+            <button class="btn primary" id="finalConfettiBtn">Celebrate 🎉</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- FINAL -->
+    <section id="final" class="section final">
+      <div class="container final-inner">
+        <h2>Happy Birthday, <span class="accent" id="finalName">My Love</span> ❤️</h2>
+        <p class="muted">
+          I hope this made you smile. Now come get your real gift 😄
+        </p>
+        <div class="row">
+          <button class="btn primary" id="oneMoreFireworks">One more fireworks 🎆</button>
+          <button class="btn ghost" id="copyLinkBtn">Copy Website Link</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- COUNTUP BAR -->
+    <div class="countup-bar" id="countupBar" aria-live="polite">
+      <div class="countup-inner">
+        <div class="countup-title">
+          <span class="countup-heart">💗</span>
+          <span>Time since <strong>We are together for forever</strong></span>
+        </div>
+
+        <div class="countup-cards" role="group" aria-label="Time since counter">
+          <div class="countup-card">
+            <div class="countup-num" id="cuDays">0</div>
+            <div class="countup-label">Days</div>
+          </div>
+          <div class="countup-card">
+            <div class="countup-num" id="cuHours">00</div>
+            <div class="countup-label">Hours</div>
+          </div>
+          <div class="countup-card">
+            <div class="countup-num" id="cuMins">00</div>
+            <div class="countup-label">Minutes</div>
+          </div>
+          <div class="countup-card">
+            <div class="countup-num" id="cuSecs">00</div>
+            <div class="countup-label">Seconds</div>
+          </div>
+        </div>
+
+        <button class="countup-close" id="countupClose" aria-label="Hide counter">✕</button>
+      </div>
+    </div>
+
+
+  </main>
+
+  <footer class="footer">
+    <div class="container footer-inner">
+      <span>Made with ❤️ for FATEMA</span>
+      <span class="muted">I LOVE YOU SOO MUCHH MY SWEETHEART</span>
+    </div>
+  </footer>
+
+  <!-- Optional music -->
+  <audio id="bgMusic" preload="auto" loop>
+    <!-- Put your song file in assets and set src -->
+    <!-- <source src="assets/music.mp3" type="audio/mpeg" /> -->
+  </audio>
+
+  <!-- Libraries -->
+  <script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/gsap.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/ScrollTrigger.min.js"></script>
+
+  <script src="https://cdn.jsdelivr.net/npm/tsparticles@3/tsparticles.bundle.min.js"></script>
+
+  <script src="https://cdn.jsdelivr.net/npm/fireworks-js@2.10.7/dist/index.umd.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.min.js"></script>
+
+  <script src="https://cdn.jsdelivr.net/npm/lightgallery@2.7.2/lightgallery.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/lightgallery@2.7.2/plugins/zoom/lg-zoom.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/lightgallery@2.7.2/plugins/thumbnail/lg-thumbnail.umd.min.js"></script>
+
+  <script src="script.js"></script>
+</body>
+</html>
