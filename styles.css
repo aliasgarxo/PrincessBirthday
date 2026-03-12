@@ -652,6 +652,7 @@ main{position:relative; z-index: 3}
 }
 .letter-body{
   padding: 20px 18px 6px;
+  background: rgba(0,0,0,0.01);
 }
 
 .signature{

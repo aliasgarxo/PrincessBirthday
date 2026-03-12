@@ -235,7 +235,7 @@ lightBtn.addEventListener("click", () => {
 
 wishBtn.addEventListener("click", () => {
   wishMade = true;
-  wishBox.innerHTML = `<span class="accent">Wish locked in 💝</span> Now blow the candles out!`;
+  wishBox.innerHTML = `<span class="accent">Wish locked in 💝</span>`;
   megaConfettiBursts(10, 140);
 });
 
@@ -257,8 +257,8 @@ blowBtn.addEventListener("click", () => {
   }, 1100);
 
   wishBox.textContent = wishMade
-    ? "Candles out ✅ Keep scrolling… fireworks are ready 🎆"
-    : "Candles out 🌬️ Make a wish next time 😉";
+    ? ""
+    : "";
 
   // tiny confetti burst when blown
   megaConfettiBursts(14, 120);
