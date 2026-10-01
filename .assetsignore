@@ -1,0 +1,14 @@
+# Keep source, git metadata and deploy scaffolding out of the uploaded asset
+# bundle. Without .git here, wrangler tries to upload the packfile and fails
+# the 25 MiB per-asset limit.
+.git
+worker
+gate
+wrangler.jsonc
+.assetsignore
+.gitignore
+LOCK-SCREEN.md
+node_modules
+.wrangler
+.dev.vars
+.DS_Store

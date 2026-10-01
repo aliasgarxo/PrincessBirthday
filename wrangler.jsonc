@@ -1,0 +1,30 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "princessbirthdaysite",
+  "main": "worker/index.js",
+  "compatibility_date": "2026-09-01",
+
+  "assets": {
+    "directory": ".",
+    "binding": "ASSETS",
+
+    // CRITICAL. Without this, Cloudflare serves a matching static asset
+    // *before* the Worker runs, and every photo stays reachable by URL with
+    // the gate never consulted. This forces the Worker to run first on every
+    // request so it can require a session before calling env.ASSETS.fetch().
+    "run_worker_first": true
+  },
+
+  // Rate limiting needs a KV namespace. The gate still works without it, but
+  // brute-force throttling is silently skipped. To enable:
+  //
+  //   npx wrangler kv namespace create GATE_KV
+  //
+  // then uncomment the block below with the id it prints.
+  //
+  // "kv_namespaces": [
+  //   { "binding": "GATE_KV", "id": "<id-from-the-command-above>" }
+  // ],
+
+  "observability": { "enabled": true }
+}

@@ -1,11 +1,13 @@
 /**
- * Password gate for the birthday site, running as Cloudflare Pages Functions
- * middleware.
+ * Password gate for the birthday site.
  *
- * This middleware is invoked for every request to the project (see
- * _routes.json), so nothing is served until the request carries a valid
- * session cookie — including every file under /assets. A lock screen written
- * in front-end JS could not do this: the photos would stay fetchable by URL.
+ * This is a Worker with static assets. The Worker runs before the asset
+ * server (see `run_worker_first` in wrangler.jsonc) and only calls
+ * env.ASSETS.fetch() once the request carries a valid session cookie — so
+ * nothing is served until then, including every file under /assets.
+ *
+ * A lock screen written in front-end JS could not do this: the hash would be
+ * readable via view-source, and the photos would stay fetchable by URL.
  *
  * Uses only Web Crypto, which is native to the Workers runtime.
  */
@@ -81,18 +83,15 @@ async function verifyPassword(password, stored) {
 
 /* ----------------------------------------------------------------- session */
 
-async function hmacKey(secret) {
-  return crypto.subtle.importKey(
+async function sign(secret, message) {
+  const key = await crypto.subtle.importKey(
     "raw",
     enc.encode(secret),
     { name: "HMAC", hash: "SHA-256" },
     false,
     ["sign"]
   );
-}
-
-async function sign(secret, message) {
-  const sig = await crypto.subtle.sign("HMAC", await hmacKey(secret), enc.encode(message));
+  const sig = await crypto.subtle.sign("HMAC", key, enc.encode(message));
   return b64urlFromBytes(new Uint8Array(sig));
 }
 
@@ -145,10 +144,9 @@ function cookieHeader(token, maxAgeSec) {
 
 /**
  * Backed by a KV namespace bound as GATE_KV. Workers isolates are ephemeral
- * and per-colo, so an in-memory counter would not survive or be shared — KV
- * is the portable option. It is eventually consistent (a determined attacker
- * spread across colos gets a little extra headroom), so pair it with a
- * Cloudflare rate-limiting rule on /api/login for a hard ceiling.
+ * and per-colo, so an in-memory counter would neither persist nor be shared.
+ * KV is eventually consistent, so pair it with a Cloudflare rate-limiting rule
+ * on /api/login if you want a hard ceiling.
  */
 function clientIp(request) {
   return request.headers.get("CF-Connecting-IP") || "unknown";
@@ -159,8 +157,7 @@ async function getLockout(env, ip) {
   const raw = await env.GATE_KV.get(`fail:${ip}`);
   if (!raw) return 0;
   try {
-    const rec = JSON.parse(raw);
-    return Math.max(0, (rec.lockUntil || 0) - Date.now());
+    return Math.max(0, (JSON.parse(raw).lockUntil || 0) - Date.now());
   } catch {
     return 0;
   }
@@ -229,95 +226,100 @@ function lockPage(status = 200) {
 
 /* --------------------------------------------------------------------- gate */
 
-export async function onRequest(context) {
-  const { request, env, next } = context;
-  const url = new URL(request.url);
-  const route = url.pathname;
+export default {
+  async fetch(request, env) {
+    const url = new URL(request.url);
+    const route = url.pathname;
 
-  const passwordHash = env.PASSWORD_HASH;
-  const sessionSecret = env.SESSION_SECRET;
+    const passwordHash = env.PASSWORD_HASH;
+    const sessionSecret = env.SESSION_SECRET;
 
-  // Fail closed. If the gate is misconfigured it must never fall through to
-  // the unprotected site.
-  if (!passwordHash || !sessionSecret || sessionSecret.length < 32) {
-    return json(503, {
-      error:
-        "Lock screen is not configured. Set PASSWORD_HASH and SESSION_SECRET " +
-        "in the Cloudflare Pages project settings.",
-    });
-  }
-
-  const ttlMs = (Number(env.SESSION_TTL_HOURS) || DEFAULT_TTL_HOURS) * 3600 * 1000;
-
-  /* ---- login ---- */
-  if (route === "/api/login") {
-    if (request.method !== "POST") return json(405, { error: "method not allowed" });
-
-    const ip = clientIp(request);
-    const waitMs = await getLockout(env, ip);
-    if (waitMs > 0) {
-      return json(429, {
-        error: "Too many attempts. Try again shortly.",
-        retryAfterSeconds: Math.ceil(waitMs / 1000),
+    // Fail closed. If the gate is misconfigured it must never fall through to
+    // the unprotected site.
+    if (!passwordHash || !sessionSecret || sessionSecret.length < 32) {
+      return json(503, {
+        error:
+          "Lock screen is not configured. Set the PASSWORD_HASH and " +
+          "SESSION_SECRET secrets on this Worker.",
       });
     }
 
-    let password = "";
-    try {
-      const body = await request.json();
-      password = String(body.password ?? "");
-    } catch {
-      return json(400, { error: "Bad request" });
-    }
+    const ttlMs = (Number(env.SESSION_TTL_HOURS) || DEFAULT_TTL_HOURS) * 3600 * 1000;
 
-    const ok = password.length > 0 && (await verifyPassword(password, passwordHash));
-    if (!ok) {
-      const lockMs = await recordFailure(env, ip);
-      return json(401, {
-        error: "That's not it. Try again 💗",
-        ...(lockMs > 0 ? { retryAfterSeconds: Math.ceil(lockMs / 1000) } : {}),
+    /* ---- login ---- */
+    if (route === "/api/login") {
+      if (request.method !== "POST") return json(405, { error: "method not allowed" });
+
+      const ip = clientIp(request);
+      const waitMs = await getLockout(env, ip);
+      if (waitMs > 0) {
+        return json(429, {
+          error: "Too many attempts. Try again shortly.",
+          retryAfterSeconds: Math.ceil(waitMs / 1000),
+        });
+      }
+
+      let password = "";
+      try {
+        password = String((await request.json()).password ?? "");
+      } catch {
+        return json(400, { error: "Bad request" });
+      }
+
+      if (!(password.length > 0 && (await verifyPassword(password, passwordHash)))) {
+        const lockMs = await recordFailure(env, ip);
+        return json(401, {
+          error: "That's not it. Try again 💗",
+          ...(lockMs > 0 ? { retryAfterSeconds: Math.ceil(lockMs / 1000) } : {}),
+        });
+      }
+
+      await clearFailures(env, ip);
+      return json(200, { ok: true }, {
+        "Set-Cookie": cookieHeader(
+          await issueToken(sessionSecret, ttlMs),
+          Math.floor(ttlMs / 1000)
+        ),
       });
     }
 
-    await clearFailures(env, ip);
-    return json(200, { ok: true }, {
-      "Set-Cookie": cookieHeader(await issueToken(sessionSecret, ttlMs), Math.floor(ttlMs / 1000)),
-    });
-  }
-
-  /* ---- logout ---- */
-  if (route === "/api/logout") {
-    if (request.method !== "POST") return json(405, { error: "method not allowed" });
-    return json(200, { ok: true }, { "Set-Cookie": cookieHeader("", 0) });
-  }
-
-  if (request.method !== "GET" && request.method !== "HEAD") {
-    return json(405, { error: "method not allowed" });
-  }
-
-  const authed = await tokenIsValid(readCookie(request, COOKIE_NAME), sessionSecret);
-
-  if (route === "/login") {
-    if (authed) {
-      return new Response(null, { status: 302, headers: { ...SECURITY_HEADERS, Location: "/" } });
+    /* ---- logout ---- */
+    if (route === "/api/logout") {
+      if (request.method !== "POST") return json(405, { error: "method not allowed" });
+      return json(200, { ok: true }, { "Set-Cookie": cookieHeader("", 0) });
     }
-    return lockPage(200);
-  }
 
-  if (!authed) {
-    // The lock page is returned for every gated path, so a request for
-    // /assets/photos/1.png reveals nothing about what exists.
-    return lockPage(401);
-  }
+    if (request.method !== "GET" && request.method !== "HEAD") {
+      return json(405, { error: "method not allowed" });
+    }
 
-  // Authenticated: let Pages serve the static asset, but strip it from any
-  // shared cache on the way out.
-  const response = await next();
-  const headers = new Headers(response.headers);
-  for (const [k, v] of Object.entries(SECURITY_HEADERS)) headers.set(k, v);
-  return new Response(response.body, {
-    status: response.status,
-    statusText: response.statusText,
-    headers,
-  });
-}
+    const authed = await tokenIsValid(readCookie(request, COOKIE_NAME), sessionSecret);
+
+    if (route === "/login") {
+      if (authed) {
+        return new Response(null, {
+          status: 302,
+          headers: { ...SECURITY_HEADERS, Location: "/" },
+        });
+      }
+      return lockPage(200);
+    }
+
+    if (!authed) {
+      // The lock page is returned for every gated path, so a request for
+      // /assets/photos/1.png reveals nothing about what exists.
+      return lockPage(401);
+    }
+
+    // Authenticated: hand off to the static asset server, then strip the
+    // response from any shared cache on the way out.
+    const response = await env.ASSETS.fetch(request);
+    const headers = new Headers(response.headers);
+    for (const [k, v] of Object.entries(SECURITY_HEADERS)) headers.set(k, v);
+    return new Response(response.body, {
+      status: response.status,
+      statusText: response.statusText,
+      headers,
+    });
+  },
+};

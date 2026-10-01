@@ -1,7 +1,7 @@
 # Password lock screen
 
-The site is gated by a Cloudflare Pages Functions middleware
-(`functions/_middleware.js`). It runs at the edge on **every** request and
+The site is a **Worker with static assets**, gated by `worker/index.js`. The
+Worker runs at the edge on **every** request (see `run_worker_first` below) and
 refuses to serve anything — `index.html`, `styles.css`, `script.js`, and every
 file under `assets/` — until the request carries a valid session cookie.
 
@@ -25,8 +25,9 @@ the image bytes.
 
 | Path | Purpose |
 | --- | --- |
-| `functions/_middleware.js` | The gate. Auth check, `/api/login`, `/api/logout`. |
-| `_routes.json` | Forces the middleware to run on every path, including `/assets/*`. |
+| `worker/index.js` | The gate. Auth check, `/api/login`, `/api/logout`. |
+| `wrangler.jsonc` | Worker + assets config. **`run_worker_first: true` is load-bearing.** |
+| `.assetsignore` | Keeps source and `.git` out of the uploaded asset bundle. |
 | `gate/lock.html` | Lock screen source — **edit this one**. |
 | `gate/lock-page.js` | Generated from the above; the Workers runtime has no filesystem. |
 | `gate/build-lock-page.mjs` | Regenerates `lock-page.js`. |
@@ -40,7 +41,17 @@ node gate/build-lock-page.mjs
 
 ## Setup
 
-### 1. Generate the credentials
+Deploys here are **manual** — this project is not wired to build on push, so a
+`git push` changes nothing on the live site. Every step below is run by you
+from a machine logged into Cloudflare.
+
+### 1. Log in
+
+```bash
+npx wrangler login
+```
+
+### 2. Generate the credentials
 
 ```bash
 node gate/hash-password.mjs 'a passphrase of several words'
@@ -49,43 +60,57 @@ node gate/hash-password.mjs 'a passphrase of several words'
 Minimum 12 characters, enforced. The plaintext is never written to disk — only
 the PBKDF2 hash.
 
-### 2. Set them in the Pages project
-
-Cloudflare dashboard → your Pages project → **Settings → Environment
-variables**. Add both as **encrypted / Secret**, to **both the Production and
-Preview environments**:
-
-- `PASSWORD_HASH`
-- `SESSION_SECRET`
-
-Or via wrangler:
+### 3. Set them as Worker secrets
 
 ```bash
-npx wrangler pages secret put PASSWORD_HASH   --project-name <project>
-npx wrangler pages secret put SESSION_SECRET  --project-name <project>
+npx wrangler secret put PASSWORD_HASH
+npx wrangler secret put SESSION_SECRET
 ```
 
-### 3. (Recommended) Bind a KV namespace for rate limiting
+Paste each value when prompted. **Do this before deploying.** The gate fails
+closed, so a deploy without these makes the site return `503` to everyone.
 
-Without it the gate still works, but brute-force throttling is skipped.
+### 4. (Recommended) Create the KV namespace for rate limiting
+
+Without it the gate still works, but brute-force throttling is silently
+skipped.
 
 ```bash
 npx wrangler kv namespace create GATE_KV
 ```
 
-Then bind it in **Settings → Functions → KV namespace bindings** with the
-variable name `GATE_KV`.
+Uncomment the `kv_namespaces` block in `wrangler.jsonc` and paste in the id it
+prints.
 
-Workers isolates are ephemeral and per-colo, so an in-memory counter would
-neither persist nor be shared — KV is the portable option. It is eventually
-consistent, so also add a Cloudflare rate-limiting rule on `/api/login` if you
-want a hard ceiling.
+### 5. Deploy
 
-### 4. Deploy
+```bash
+npx wrangler deploy
+```
 
-Pages redeploys on push. Confirm the lock appears, log in once, then check that
-a photo URL such as `/assets/photos/1.png` returns the lock page in a private
-window.
+### 6. Verify
+
+In a private window, confirm `https://alilovesfatema.com/` shows the lock
+screen, and that `https://alilovesfatema.com/assets/photos/1.png` also shows
+the lock screen rather than the photo. Then log in once and check the gallery
+renders.
+
+## How the asset bypass is prevented
+
+`wrangler.jsonc` sets:
+
+```jsonc
+"assets": { "run_worker_first": true }
+```
+
+This is the single most important line in the config. By default a Worker with
+static assets serves a matching asset **before** the Worker runs — which would
+leave every photo reachable by direct URL with the gate never consulted.
+`run_worker_first` forces the Worker to run first on every request, so it can
+require a session before calling `env.ASSETS.fetch()`.
+
+`.assetsignore` must list `.git`. Without it `wrangler` tries to upload the
+git packfile as an asset and the deploy fails the 25 MiB per-asset limit.
 
 ## Security properties
 
@@ -98,6 +123,8 @@ window.
 | Brute force | 5 free attempts per IP, then exponential backoff to a 15-minute cap (needs `GATE_KV`). |
 | CDN leakage | `Cache-Control: private, no-store` on every protected response. |
 | Misconfiguration | Fails closed — missing secrets return `503`, never the site. |
+| Asset bypass | `run_worker_first: true` — the Worker runs before the asset server. |
+| Source disclosure | `.assetsignore` excludes `worker/`, `gate/` and `.git` from the bundle. |
 | Enumeration | Every gated path returns the same lock page, revealing nothing about what exists. |
 | Dependencies | Zero. Web Crypto only. |
 
@@ -133,6 +160,6 @@ it up with no code change.
   redeploy.
 - **Rotating `SESSION_SECRET`** invalidates every active session immediately.
 - **Local testing**: put the two values in `.dev.vars` (gitignored), then
-  `npx wrangler pages dev . --kv GATE_KV`.
+  `npx wrangler dev`.
 - `SESSION_TTL_HOURS` (optional, default `12`) controls how long an unlock
   lasts.
