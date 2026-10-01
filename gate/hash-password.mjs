@@ -38,18 +38,22 @@ const hash = `pbkdf2-sha256$${ITERATIONS}$${salt.toString("base64")}$${derived.t
 const sessionSecret = randomBytes(48).toString("base64");
 
 console.log(`
-Set these as environment variables in the Cloudflare Pages project
-(Settings -> Environment variables). Mark both as "Secret" / encrypted,
-and add them to BOTH the Production and Preview environments.
+Set these as secrets on the Worker. Piping with printf avoids the
+interactive paste truncating, and single quotes stop the shell expanding
+the $ characters in the hash:
 
-  PASSWORD_HASH
-  ${hash}
+  printf '%s' '${hash}' \\
+    | npx wrangler secret put PASSWORD_HASH
 
-  SESSION_SECRET
-  ${sessionSecret}
+  printf '%s' '${sessionSecret}' \\
+    | npx wrangler secret put SESSION_SECRET
 
-Or via wrangler:
+Then deploy:
 
-  npx wrangler pages secret put PASSWORD_HASH --project-name <your-project>
-  npx wrangler pages secret put SESSION_SECRET --project-name <your-project>
+  npx wrangler deploy
+
+If you set these BEFORE a deploy and the site returns 503, re-run the two
+secret commands after deploying and verify with:
+
+  npx wrangler secret list
 `);
